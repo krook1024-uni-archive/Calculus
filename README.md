@@ -20,7 +20,7 @@ Network architectures and protocolls.
 
 **Client:**
 
-- [ ] Basic server-client communication
+- [ ] Basic server-client communication (connect, disconnect)
 - [ ] Connect to the server
 - [ ] Act accordingly to user input
-- [ ] Resignation with the word `feladom` or `resign`
+- [ ] Resignation given the word `feladom` or `resign`
