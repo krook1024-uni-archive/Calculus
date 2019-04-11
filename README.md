@@ -1,6 +1,6 @@
 # 🔴🔵 Calculus
 
-![FR33 4S 1N FR33D0M](https://www.gnu.org/graphics/gplv3-with-text-136x68.png)
+<img align="right" width="100" height="100" src="https://www.gnu.org/graphics/gplv3-with-text-136x68.png">
 
 Two players play this game in which there are three stacks of
 small rocks (hence the name; *Calculus*). The number of rocks in
