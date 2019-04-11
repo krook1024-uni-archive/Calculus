@@ -63,26 +63,26 @@ main(int argc, char **argv) {
 
 	printf("\nStarting server at 0.0.0.0:%d...\n", port);
 	printf("RULES:\n");
-	printf("\t- There will be %d rocks per stack.\n", rocks_per_stack);
-	printf("\t- The maximum a player can take at once is %d rocks.\n", max_takable);
+	printf("  - There will be %d rocks per stack.\n", rocks_per_stack);
+	printf("  - The maximum a player can take at once is %d rocks.\n", max_takable);
 
 	return 0;
 }
 
 void
 license(void) {
-    printf("Calculus   Copyright (C) 2019 Molnár Antal Albert\n");
+    printf("Calculus    Copyright (C) 2019 Molnár Antal Albert\n");
     printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
     printf("This is free software, and you are welcome to redistribute it\n");
-    printf("under certain conditions.\n");
+    printf("under certain conditions.\n\n");
 }
 
 void
 usage(void) {
 	printf("USAGE: server [PORT] [#_OF_ROCKS] [MAX_TAKABLE]\n\n");
-	printf("\tPORT is the port you wish to be running the server on.\n");
-	printf("\t#_OF_ROCKS is the number of rocks per stack\n");
-	printf("\tMAX_TAKABLE defines the maximum number of rocks a player can take at once\n");
+	printf("  PORT is the port you wish to be running the server on.\n");
+	printf("  #_OF_ROCKS is the number of rocks per stack\n");
+	printf("  MAX_TAKABLE defines the maximum number of rocks a player can take at once\n");
 	printf("\nEXAMPLE: server 23145 12 4\n");
 	printf("\t\n");
 }
