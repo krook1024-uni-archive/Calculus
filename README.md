@@ -1,5 +1,7 @@
 # 🔴🔵 Calculus
 
+![FR33 4S 1N FR33D0M](https://www.gnu.org/graphics/gplv3-with-text-136x68.png)
+
 Two players play this game in which there are three stacks of
 small rocks (hence the name; *Calculus*). The number of rocks in
 a stack is the same for all three stacks. One round in this game
@@ -15,8 +17,10 @@ Network architectures and protocolls.
 
 **Server:**
 
+- [x] Argument processing
 - [ ] Basic server-client communication
 - [ ] Implement game rules
+- [ ] Read messages from the client and act accordingly
 
 **Client:**
 
