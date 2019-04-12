@@ -59,7 +59,7 @@ main(int argc, char **argv) {
 	unsigned short int rocks_per_stack = atoi (*(++argv));
 	unsigned short int max_takable = atoi (*(++argv));
 
-	if(port < 1 || port > 65535) {
+	if(port < 1024 || port > 65535) {
 		usage();
 		exit(1);
 	}
@@ -215,9 +215,9 @@ license(void) {
 void
 usage(void) {
 	printf("USAGE: server [PORT] [#_OF_ROCKS] [MAX_TAKABLE]\n\n");
-	printf("  PORT is the port you wish to be running the server on.\n");
-	printf("  #_OF_ROCKS is the number of rocks per stack\n");
-	printf("  MAX_TAKABLE defines the maximum number of rocks a player can take at once\n");
+	printf("  PORT is the port you wish to be running the server on.\t(1024-65534)\n");
+	printf("  #_OF_ROCKS is the number of rocks per stack\t(1-10000)\n");
+	printf("  MAX_TAKABLE defines the maximum number of rocks a player can take at once\t(1-#_OF_ROCKS)\n");
 	printf("\nEXAMPLE: server 23145 12 4\n");
 	printf("\t\n");
 }
