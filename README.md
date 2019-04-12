@@ -18,7 +18,7 @@ Network architectures and protocolls.
 **Server:**
 
 - [x] Argument processing
-- [ ] Basic server-client communication
+- [x] Basic server-client communication
 - [ ] Implement game rules
 - [ ] Read messages from the client and act accordingly
 
