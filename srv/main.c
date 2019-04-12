@@ -36,13 +36,11 @@
 #include <sys/time.h>
 #include <errno.h>
 
-#define TRUE 1
-#define FALSE 0
-
 void license(void);
 void usage(void);
 void printlogo(void);
 char *concat(const char*, const char*);
+int onMessageReceived(const int, const char*);
 
 int
 main(int argc, char **argv) {
@@ -77,7 +75,7 @@ main(int argc, char **argv) {
 	printf("  - There will be %d rocks per stack.\n", rocks_per_stack);
 	printf("  - The maximum a player can take at once is %d rocks.\n", max_takable);
 
-	int opt = TRUE;
+	int opt = 1;
 	unsigned short int max_clients = 30;
 	unsigned short int master_socket, addrlen, new_socket,
      				   client_socket[max_clients], activity,
@@ -85,7 +83,7 @@ main(int argc, char **argv) {
 					   sd, max_sd;
 	struct sockaddr_in address;
 
-	char *welcome_msg = "Welcome to Calculus!";
+	char *welcome_msg = "Welcome to Calculus!\n";
 	char buffer[1024 + 1];
 
 	fd_set readfs;
@@ -181,17 +179,16 @@ main(int argc, char **argv) {
 				if((valread = read(sd, buffer, 1024)) == 0) {
 					getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 					printf("Host disconnected: %s:%d!\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
-
 					close(sd);
 					client_socket[i] = 0;
 				} else {
 					// else read input from client
 					buffer[valread] = '\0';
-
-					// echo it back for now
-					char *reply = concat("Your message was: ", buffer);
-
-					send(sd, reply, strlen(reply), 0);
+					// call onMessageReceived() which is our handler function
+					if(onMessageReceived(sd, buffer) != 0) {
+						getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
+						printf("Error on onMessageReceived()! Client (id: %d): %s:%p\n", sd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+					}
 				}
 			}
 		}
@@ -238,4 +235,10 @@ char
 	return result;
 }
 
-
+int
+onMessageReceived(const int client_id, const char* msg) {
+	// echo it back for now
+	char *reply = concat("Your message was: ", msg);
+	send(client_id, reply, strlen(reply), 0);
+	return 0;
+}
