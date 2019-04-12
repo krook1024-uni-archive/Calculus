@@ -25,6 +25,8 @@
 
 */
 
+#define _GNU_SOURCE // strcasestr()
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +42,7 @@ void license(void);
 void usage(void);
 void printlogo(void);
 char *concat(const char*, const char*);
+int strContains(const char*, const char*);
 int onMessageReceived(const int, const char*);
 
 int
@@ -162,6 +165,7 @@ main(int argc, char **argv) {
 				perror("Error on send()! Message:");
 			}
 
+			// assign a new id for the new client
 			for(int i=0; i < max_clients; i++) {
 				if(client_socket[i] == 0) {
 					client_socket[i] = new_socket;
@@ -181,10 +185,13 @@ main(int argc, char **argv) {
 					printf("Host disconnected: %s:%d!\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 					close(sd);
 					client_socket[i] = 0;
-				} else {
+				}
+
+				else {
 					// else read input from client
 					buffer[valread] = '\0';
-					// call onMessageReceived() which is our handler function
+
+					// call onMessageReceived() which is our handler function for incomming messages
 					if(onMessageReceived(sd, buffer) != 0) {
 						getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 						printf("Error on onMessageReceived()! Client (id: %d): %s:%p\n", sd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
@@ -226,19 +233,31 @@ printlogo(void) {
 	printf("\n");
 }
 
-
 char
 *concat(const char *s1, const char *s2) {
 	char *result = malloc(strlen(s1) + strlen(s2) + 1);
 	strcpy(result, s1);
 	strcat(result, s2);
 	return result;
+	free(result);
+}
+
+int
+strContains(const char *haystack, const char *needle) {
+	char *retPtr = strcasestr(haystack, needle);
+	if(retPtr != NULL) {
+		return 1;
+	}
+	free(retPtr);
+	return 0;
 }
 
 int
 onMessageReceived(const int client_id, const char* msg) {
-	// echo it back for now
+	// echo everything back for now
 	char *reply = concat("Your message was: ", msg);
 	send(client_id, reply, strlen(reply), 0);
+	free(reply);
+
 	return 0;
 }
