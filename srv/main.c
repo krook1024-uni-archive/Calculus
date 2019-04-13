@@ -362,6 +362,7 @@ printBattleStats(int battle_id) {
 	for(int i=0; i < 3; i++) {
 		printf("- Stack %i: %d\n", i+1, g_battles[battle_id].stack[i]);
 	}
+	printf("- Sum of rocks: %d\n", sumRocks(battle_id));
 }
 
 int
@@ -426,11 +427,24 @@ onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int
 							// reduce stack by $howMany
 							g_battles[battle_id].stack[whichStack] -= howMany;
 
-							// set pNext to other playa
-							g_battles[battle_id].pNext = (g_battles[battle_id].pNext == g_battles[battle_id].p1)
-								? g_battles[battle_id].p2 : g_battles[battle_id].p1;
+							if(sumRocks(battle_id) == 0) {
+								sendMessage(client_id, "u won m8\n");
 
-							sendMessage(g_battles[battle_id].pNext, "ur next\n");
+								// determine other player
+								int otherPlayer = (g_battles[battle_id].p1 == client_id) ? g_battles[battle_id].p2 : g_battles[battle_id].p1;
+
+								sendMessage(otherPlayer, "u lost :(\n");
+
+								printf("Player (id: %d) won against Player (id: %d). Exiting now!",
+										client_id, otherPlayer);
+								exit(0);
+							} else {
+								// set pNext to other playa
+								g_battles[battle_id].pNext = (g_battles[battle_id].pNext == g_battles[battle_id].p1)
+									? g_battles[battle_id].p2 : g_battles[battle_id].p1;
+
+								sendMessage(g_battles[battle_id].pNext, "ur next\n");
+							}
 
 							printBattleStats(battle_id);
 						}

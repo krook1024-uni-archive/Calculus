@@ -22,7 +22,7 @@ Network architectures and protocolls.
 - [x] Implement game rules
 - [x] Resignation given the word `feladom` or `resign`
 - [x] Read messages from the client and act accordingly
-- [ ] Recognize a win, let the users know, and exit (*exit required by the project*)
+- [x] Recognize a win, let the users know, and exit (*exiting is required by the project*)
 
 **Client:**
 
