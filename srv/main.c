@@ -38,6 +38,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <ctype.h> // isdigit()
 
 #define MAX_CLIENTS 30
 #define MAX_BATTLES 15 // should always be (MAX_CLIENTS/2)
@@ -54,12 +55,14 @@ void resetBattle(int, const int);
 int getClientBattleId(int);
 bool isInBattle(int);
 void printBattleStats(int);
+int sumRocks(int);
 
 void disconnectPeer(int);
-int onMessageReceived(const int, const char*);
+void sendMessage(int, const char*);
+bool onMessageReceived(const int, const char*, int, int);
 
 typedef struct Battle {
-	int p1, p2, stack[3];
+	int p1, p2, pNext, stack[3];
 } Battle;
 
 // Only global so other functions can access it
@@ -212,6 +215,7 @@ main(int argc, char **argv) {
 
 						g_battles[new_battle_id].p1 = new_socket_id-1;
 						g_battles[new_battle_id].p2 = new_socket_id;
+						g_battles[new_battle_id].pNext = g_battles[new_battle_id].p1;
 
 						printf("Creating a battle for %d and %d (battle id: %d)!\n", new_socket_id, new_socket_id-1, new_battle_id);
 						printBattleStats(new_battle_id);
@@ -239,7 +243,7 @@ main(int argc, char **argv) {
 					buffer[valread] = '\0';
 
 					// call onMessageReceived() which is our handler function for incomming messages
-					if(onMessageReceived(i, buffer) != 0) {
+					if(!onMessageReceived(i, buffer, rocks_per_stack, max_takable)) {
 						getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 						printf("Error on onMessageReceived()! Client (id: %d): %s:%p\n", sd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 					}
@@ -324,6 +328,7 @@ void
 resetBattle(int battleid, const int rocks_per_stack) {
 	g_battles[battleid].p1 = 0;
 	g_battles[battleid].p2 = 0;
+	g_battles[battleid].pNext = 0;
 
 	for(int i=0; i < 3; i++) {
 		g_battles[battleid].stack[i] = (int)rocks_per_stack;
@@ -353,9 +358,19 @@ printBattleStats(int battle_id) {
 	printf("========[Battle %d]========\n", battle_id);
 	printf("- Player 1: %d\n", g_battles[battle_id].p1);
 	printf("- Player 2: %d\n", g_battles[battle_id].p2);
+	printf("- Next player: %d\n", g_battles[battle_id].pNext);
 	for(int i=0; i < 3; i++) {
-		printf("- Stack %i: %d\n", i, g_battles[battle_id].stack[i]);
+		printf("- Stack %i: %d\n", i+1, g_battles[battle_id].stack[i]);
 	}
+}
+
+int
+sumRocks(int battle_id) {
+	int retVal = 0;
+	for(int i=0; i < 3; i++) {
+		retVal += g_battles[battle_id].stack[i];
+	}
+	return retVal;
 }
 
 void
@@ -365,8 +380,8 @@ disconnectPeer(int client_id) {
 	g_client_socket[client_id] = 0;
 }
 
-int
-onMessageReceived(const int client_id, const char* msg) {
+bool
+onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int max_takable) {
 	// dc if user wants to
 	if(strContains(msg, "quit")) {
 		disconnectPeer(client_id);
@@ -374,8 +389,45 @@ onMessageReceived(const int client_id, const char* msg) {
 
 	if(isInBattle(client_id)) {
 		// taking
+		int battle_id = getClientBattleId(client_id);
 		if(strContains(msg, "take")) {
+			int whichStack = 0,	howMany = 0;
+			/*char *strPtr = strcasestr(msg, "take");
+			if(strPtr != NULL) {
+				while(*strPtr) {
+					if(isdigit(*strPtr)) {
+						howMany = (int)strtoul(strPtr, &strPtr, 10);
+					} else {
+						strPtr++;
+					}
+				}
+			}*/
+			//printf("%s\n", msg);
 
+			// succesful user input
+			if(sscanf(msg, "take %d %d", &whichStack, &howMany) == 2) {
+				if(whichStack >= 1 || whichStack <= 3) {
+					// decrement cause indexes start from 0, not 1
+					whichStack--;
+					// if stack has enough rocks + user input does not exceed max takable
+					if(g_battles[battle_id].stack[whichStack] >= howMany && howMany <= max_takable) {
+						// if its actually the senders turn
+						if(g_battles[battle_id].pNext == client_id) {
+							printf("[Battle %d] Player %d has taken %d rock(s) from stack %d!\n",
+								battle_id, client_id, howMany, whichStack);
+
+							// reduce stack by $howMany
+							g_battles[battle_id].stack[whichStack] -= howMany;
+
+							// set pNext to other playa
+							g_battles[battle_id].pNext = (g_battles[battle_id].pNext == g_battles[battle_id].p1)
+								? g_battles[battle_id].p2 : g_battles[battle_id].p1;
+
+							printBattleStats(battle_id);
+						}
+					}
+				}
+			}
 		}
 
 		// surrender
@@ -385,7 +437,7 @@ onMessageReceived(const int client_id, const char* msg) {
 			int battle_id = getClientBattleId(client_id);
 			disconnectPeer(g_battles[battle_id].p1);
 			disconnectPeer(g_battles[battle_id].p2);
-			resetBattle(battle_id, 12);
+			resetBattle(battle_id, rocks_per_stack);
 		}
 	}
 
@@ -394,5 +446,5 @@ onMessageReceived(const int client_id, const char* msg) {
 	send(g_client_socket[client_id], reply, strlen(reply), 0);
 	free(reply);
 
-	return 0;
+	return true;
 }
