@@ -15,7 +15,7 @@ Network architectures and protocolls.
 
 ## TODO
 
-**Server:**
+**Server (C):**
 
 - [x] Argument processing
 - [x] Basic server-client communication
@@ -23,9 +23,11 @@ Network architectures and protocolls.
 - [x] Resignation given the word `feladom` or `resign`
 - [x] Read messages from the client and act accordingly
 - [x] Recognize a win, let the users know, and exit (*exiting is required by the project*)
+- [ ] Send current battle's data to the client if requested
 
-**Client:**
+**Client (Python):**
 
 - [ ] Basic server-client communication (connect, disconnect)
+- [ ] Build a basic GUI with [Kivy](https://kivy.org)
 - [ ] Connect to the server
 - [ ] Act accordingly to user input
