@@ -20,6 +20,7 @@ Network architectures and protocolls.
 - [x] Argument processing
 - [x] Basic server-client communication
 - [ ] Implement game rules
+- [x] Resignation given the word `feladom` or `resign`
 - [ ] Read messages from the client and act accordingly
 
 **Client:**
@@ -27,4 +28,3 @@ Network architectures and protocolls.
 - [ ] Basic server-client communication (connect, disconnect)
 - [ ] Connect to the server
 - [ ] Act accordingly to user input
-- [ ] Resignation given the word `feladom` or `resign`
