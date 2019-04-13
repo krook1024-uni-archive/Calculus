@@ -23,7 +23,8 @@ Network architectures and protocolls.
 - [x] Resignation given the word `feladom` or `resign`
 - [x] Read messages from the client and act accordingly
 - [x] Recognize a win, let the users know, and exit (*exiting is required by the project*)
-- [ ] Send current battle's data to the client if requested
+- [x] Send current battle's data to the client if requested
+- [x] Send server's rules to the client if requested
 
 **Client (Python):**
 

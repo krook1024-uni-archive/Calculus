@@ -1,7 +1,7 @@
 all: server test clean
 
 server: srv/main.c
-	@gcc -o server srv/main.c
+	@gcc -O3 -o server srv/main.c
 
 .PHONY:
 valgrind: clean server

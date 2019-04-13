@@ -48,13 +48,16 @@ void usage(void);
 void printlogo(void);
 char *concat(const char*, const char*);
 bool strContains(const char*, const char*);
-int countConnected(void);
+char *intToString(const int);
 
+int countConnected(void);
+void sendServerRules(int, int);
 int countBattles(void);
 void resetBattle(int, const int);
 int getClientBattleId(int);
 bool isInBattle(int);
 void printBattleStats(int);
+void sendBattleStats(int);
 int sumRocks(int);
 
 void disconnectPeer(int);
@@ -219,6 +222,9 @@ main(int argc, char **argv) {
 
 						printf("Creating a battle for %d and %d (battle id: %d)!\n", new_socket_id, new_socket_id-1, new_battle_id);
 						printBattleStats(new_battle_id);
+
+
+						sendMessage(g_battles[new_battle_id].pNext, "ur next\n");
 					}
 				}
 			}
@@ -303,6 +309,15 @@ strContains(const char *haystack, const char *needle) {
 	return 0;
 }
 
+char
+*intToString(const int n) {
+	int len = snprintf(NULL, 0, "%d", n);
+	char *str = malloc(len + 1);
+	snprintf(str, len + 1, "%d", n);
+	return str;
+	free(str);
+}
+
 int
 countConnected(void) {
 	int counter = 0;
@@ -311,6 +326,12 @@ countConnected(void) {
 			counter++;
 	}
 	return counter;
+}
+
+void sendServerRules(int client_id, int max_takable) {
+	sendMessage(client_id, "max_takable ");
+	sendMessage(client_id, intToString(max_takable));
+	sendMessage(client_id, "\n");
 }
 
 int
@@ -363,6 +384,26 @@ printBattleStats(int battle_id) {
 		printf("- Stack %i: %d\n", i+1, g_battles[battle_id].stack[i]);
 	}
 	printf("- Sum of rocks: %d\n", sumRocks(battle_id));
+}
+
+void
+sendBattleStats(int client_id) {
+	int battle_id = getClientBattleId(client_id);
+	int stack1 = g_battles[battle_id].stack[0],
+		stack2 = g_battles[battle_id].stack[1],
+		stack3 = g_battles[battle_id].stack[2];
+
+	sendMessage(client_id, "stack1 ");
+	sendMessage(client_id, intToString(stack1));
+	sendMessage(client_id, "\n");
+
+	sendMessage(client_id, "stack2 ");
+	sendMessage(client_id, intToString(stack2));
+	sendMessage(client_id, "\n");
+
+	sendMessage(client_id, "stack3 ");
+	sendMessage(client_id, intToString(stack3));
+	sendMessage(client_id, "\n");
 }
 
 int
@@ -462,6 +503,14 @@ onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int
 			disconnectPeer(g_battles[battle_id].p2);
 			resetBattle(battle_id, rocks_per_stack);
 		}
+
+		if(strContains(msg, "stats")) {
+			sendBattleStats(client_id);
+		}
+	}
+
+	if(strContains(msg, "rules")) {
+		sendServerRules(client_id, max_takable);
 	}
 
 	// echo everything back for now
