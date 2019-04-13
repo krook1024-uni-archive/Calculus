@@ -1,5 +1,5 @@
 /*
-		    _            _
+			_            _
            | |          | |
    ___ __ _| | ___ _   _| |_   _ ___
   / __/ _` | |/ __| | | | | | | / __|    v0.0.0
@@ -7,7 +7,7 @@
   \___\__,_|_|\___|\__,_|_|\__,_|___/
 
 
-   	Calculus - a simple terminal-based game based on socket programming
+	Calculus - a simple terminal-based game based on socket programming
     Copyright (C) 2019 Molnár Antal Albert
 
     This program is free software: you can redistribute it and/or modify
@@ -39,29 +39,30 @@
 #include <errno.h>
 
 #define MAX_CLIENTS 30
+#define MAX_BATTLES 15 // should always be (MAX_CLIENTS/2)
 
 void license(void);
 void usage(void);
 void printlogo(void);
 char *concat(const char*, const char*);
 int strContains(const char*, const char*);
+int countConnected(void);
+
+int countBattles(void);
+void resetBattle(int, const int);
+int isInBattle(int);
+void printBattleStats(int);
+
+void disconnectPeer(int);
 int onMessageReceived(const int, const char*);
+
+typedef struct Battle {
+	int p1, p2, stack[3];
+} Battle;
 
 // Only global so other functions can access it
 int g_client_socket[MAX_CLIENTS];
-
-typedef struct Player {
-	int id = 0;
-
-} Player;
-
-typedef struct Stack {
-	int num;
-} Stack;
-
-typedef struct Battle {
-	int p1, p2;
-} Battle;
+Battle g_battles[MAX_BATTLES];
 
 int
 main(int argc, char **argv) {
@@ -104,8 +105,14 @@ main(int argc, char **argv) {
 
 	fd_set readfs;
 
+	// reset clients just in case there is trash init
 	for(int i = 0; i < MAX_CLIENTS; i++) {
 		g_client_socket[i] = 0;
+	}
+
+	// reset every battle "room"
+	for(int i=0; i < MAX_BATTLES; i++) {
+		resetBattle(i, rocks_per_stack);
 	}
 
 	// master socket
@@ -165,27 +172,50 @@ main(int argc, char **argv) {
 
 		if((activity < 0) && (errno != EINTR)) printf("\nError on select()!\n");
 
-		// activity on the master socket = new connection
-		if(FD_ISSET(master_socket, &readfs)) {
-			if((new_socket = accept(master_socket, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
-				perror("\nError on accept()! Message");
-			}
+		// only accept new connection if we have enough slots
+		if(countConnected() < MAX_CLIENTS) {
+			// activity on the master socket = new connection
+			if(FD_ISSET(master_socket, &readfs)) {
+				if((new_socket = accept(master_socket, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
+					perror("\nError on accept()! Message");
+				}
 
-			printf("New connection from %s:%d (socket fd: %d)!\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port), new_socket);
+				// greet new users
+				if(send(new_socket, welcome_msg, strlen(welcome_msg), 0) != strlen(welcome_msg)) {
+					perror("Error on send()! Message:");
+				}
 
-			// greet new users
-			if(send(new_socket, welcome_msg, strlen(welcome_msg), 0) != strlen(welcome_msg)) {
-				perror("Error on send()! Message:");
-			}
+				int new_socket_id;
+				// assign a new id to the new client
+				for(int i=0; i < MAX_CLIENTS; i++) {
+					if(g_client_socket[i] == 0) {
+						g_client_socket[i] = new_socket;
+						new_socket_id = i;
+						break;
+					}
+				}
 
-			// assign a new id to the new client
-			for(int i=0; i < MAX_CLIENTS; i++) {
-				if(g_client_socket[i] == 0) {
-					g_client_socket[i] = new_socket;
-					break;
+				printf("New connection from %s:%d (id: %d, socket fd: %d)! Currently online users: %d.\n",
+						inet_ntoa(address.sin_addr), ntohs(address.sin_port), new_socket_id, new_socket, countConnected());
+
+				// create a battle for every second player and the player before them
+				if((countConnected() % 2) == 0) {
+					for(int i=0; i < MAX_CLIENTS; i++) {
+						printf("g_clienT_socket[%d]: %d\n", i, g_client_socket[i]);
+					}
+
+					// only if both are still connected
+					if(new_socket > 0 && g_client_socket[new_socket_id-1] > 0) {
+						int new_battle_id = (countBattles() == 0) ? 0 : countBattles() + 1;
+
+						g_battles[new_battle_id].p1 = new_socket_id-1;
+						g_battles[new_battle_id].p2 = new_socket_id;
+
+						printf("Creating a battle for %d and %d!\n", new_socket_id, new_socket_id-1);
+						printBattleStats(new_battle_id);
+					}
 				}
 			}
-
 		}
 
 		// if its not on the master socket then its a received msg or smth
@@ -196,7 +226,8 @@ main(int argc, char **argv) {
 				// if some1 wants to disconnect
 				if((valread = read(sd, buffer, 1024)) == 0) {
 					getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
-					printf("Host disconnected: %s:%d!\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+					printf("Host disconnected: %s:%d! Currently online users: %d.\n",
+							inet_ntoa(address.sin_addr), ntohs(address.sin_port), countConnected());
 					close(sd);
 					g_client_socket[i] = 0;
 				}
@@ -206,7 +237,7 @@ main(int argc, char **argv) {
 					buffer[valread] = '\0';
 
 					// call onMessageReceived() which is our handler function for incomming messages
-					if(onMessageReceived(sd, buffer) != 0) {
+					if(onMessageReceived(i, buffer) != 0) {
 						getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 						printf("Error on onMessageReceived()! Client (id: %d): %s:%p\n", sd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 					}
@@ -266,11 +297,71 @@ strContains(const char *haystack, const char *needle) {
 	return 0;
 }
 
+int countConnected(void) {
+	int counter = 0;
+	for(int i=0; i < MAX_CLIENTS; i++) {
+		if(g_client_socket[i] != 0)
+			counter++;
+	}
+	return counter;
+}
+
+int countBattles(void) {
+	int counter = 0;
+	for(int i=0; i < MAX_BATTLES; i++) {
+		if(g_battles[i].p1 != 0 && g_battles[i].p2 != 0)
+			counter++;
+	}
+	return counter;
+}
+
+void resetBattle(int battleid, const int rocks_per_stack) {
+	g_battles[battleid].p1 = 0;
+	g_battles[battleid].p2 = 0;
+
+	for(int i=0; i < 3; i++) {
+		g_battles[battleid].stack[i] = (int)rocks_per_stack;
+	}
+}
+
+int isInBattle(int client_id) {
+	int retVal = 0;
+	for(int i=0; i < MAX_BATTLES; i++) {
+		if(g_battles[i].p1 == client_id && g_battles[i].p2 == client_id ) {
+			retVal = 1;
+			break;
+		}
+	}
+
+	return retVal;
+}
+
+void printBattleStats(int battle_id) {
+	printf("========[Battle %d]========\n", battle_id);
+	printf("- Player 1: %d\n", g_battles[battle_id].p1);
+	printf("- Player 2: %d\n", g_battles[battle_id].p2);
+	for(int i=0; i < 3; i++) {
+		printf("- Stack %i: %d\n", g_battles[battle_id].stack[i]);
+	}
+}
+
+void disconnectPeer(int client_id) {
+	printf("Forcefully disconnecting peer (id: %d, fd: %d)!\n", client_id, g_client_socket[client_id]);
+	close(g_client_socket[client_id]);
+	g_client_socket[client_id] = 0;
+}
+
 int
 onMessageReceived(const int client_id, const char* msg) {
+
+	// dc if wants to
+	if(strContains(msg, "dc")) {
+		disconnectPeer(client_id);
+	}
+
 	// echo everything back for now
 	char *reply = concat("Your message was: ", msg);
-	send(client_id, reply, strlen(reply), 0);
+	send(g_client_socket[client_id], reply, strlen(reply), 0);
 	free(reply);
 
 	return 0;
