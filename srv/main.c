@@ -380,6 +380,13 @@ disconnectPeer(int client_id) {
 	g_client_socket[client_id] = 0;
 }
 
+void
+sendMessage(int client_id, const char* msg) {
+	if(send(g_client_socket[client_id], msg, strlen(msg), 0) != strlen(msg)) {
+		perror("(SendMessage): Error on send()! Message");
+	}
+}
+
 bool
 onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int max_takable) {
 	// dc if user wants to
@@ -423,6 +430,8 @@ onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int
 							g_battles[battle_id].pNext = (g_battles[battle_id].pNext == g_battles[battle_id].p1)
 								? g_battles[battle_id].p2 : g_battles[battle_id].p1;
 
+							sendMessage(g_battles[battle_id].pNext, "ur next\n");
+
 							printBattleStats(battle_id);
 						}
 					}
@@ -442,9 +451,9 @@ onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int
 	}
 
 	// echo everything back for now
-	char *reply = concat("Your message was: ", msg);
+	/*char *reply = concat("Your message was: ", msg);
 	send(g_client_socket[client_id], reply, strlen(reply), 0);
-	free(reply);
+	free(reply);*/
 
 	return true;
 }
