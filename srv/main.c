@@ -202,9 +202,9 @@ main(int argc, char **argv) {
 
 				// create a battle for every second player and the player before them
 				if((countConnected() % 2) == 0) {
-					for(int i=0; i < MAX_CLIENTS; i++) {
+					/*for(int i=0; i < MAX_CLIENTS; i++) {
 						printf("g_clienT_socket[%d]: %d\n", i, g_client_socket[i]);
-					}
+					}*/
 
 					// only if both are still connected
 					if(new_socket > 0 && g_client_socket[new_socket_id-1] > 0) {
@@ -340,7 +340,6 @@ getClientBattleId(int client_id) {
 			break;
 		}
 	}
-	printf("clid = %d retval = %d\n", client_id, retVal);
 	return retVal;
 }
 
