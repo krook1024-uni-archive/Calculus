@@ -9,8 +9,8 @@ means both players taking an amount of rocks which can be between
 one and a number defined at the start of the game. The winner is the
 one taking the last rock.
 
-This is a project of mine written for a class called
-**Hálózati architektúrák és protokollok** which stands for
+This is a project of mine written from scratch for a class
+called **Hálózati architektúrák és protokollok** which stands for
 Network architectures and protocolls.
 
 ## TODO
