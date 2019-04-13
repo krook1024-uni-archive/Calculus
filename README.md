@@ -19,9 +19,10 @@ Network architectures and protocolls.
 
 - [x] Argument processing
 - [x] Basic server-client communication
-- [ ] Implement game rules
+- [x] Implement game rules
 - [x] Resignation given the word `feladom` or `resign`
-- [ ] Read messages from the client and act accordingly
+- [x] Read messages from the client and act accordingly
+- [ ] Recognize a win, let the users know, and exit (*exit required by the project*)
 
 **Client:**
 
