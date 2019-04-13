@@ -38,12 +38,30 @@
 #include <sys/time.h>
 #include <errno.h>
 
+#define MAX_CLIENTS 30
+
 void license(void);
 void usage(void);
 void printlogo(void);
 char *concat(const char*, const char*);
 int strContains(const char*, const char*);
 int onMessageReceived(const int, const char*);
+
+// Only global so other functions can access it
+int g_client_socket[MAX_CLIENTS];
+
+typedef struct Player {
+	int id = 0;
+
+} Player;
+
+typedef struct Stack {
+	int num;
+} Stack;
+
+typedef struct Battle {
+	int p1, p2;
+} Battle;
 
 int
 main(int argc, char **argv) {
@@ -79,20 +97,15 @@ main(int argc, char **argv) {
 	printf("  - The maximum a player can take at once is %d rocks.\n", max_takable);
 
 	int opt = 1;
-	unsigned short int max_clients = 30;
-	unsigned short int master_socket, addrlen, new_socket,
-     				   client_socket[max_clients], activity,
-					   valread,
-					   sd, max_sd;
+	unsigned short int master_socket, addrlen, new_socket, activity, valread, sd, max_sd;
 	struct sockaddr_in address;
-
 	char *welcome_msg = "Welcome to Calculus!\n";
 	char buffer[1024 + 1];
 
 	fd_set readfs;
 
-	for(int i = 0; i < max_clients; i++) {
-		client_socket[i] = 0;
+	for(int i = 0; i < MAX_CLIENTS; i++) {
+		g_client_socket[i] = 0;
 	}
 
 	// master socket
@@ -136,9 +149,9 @@ main(int argc, char **argv) {
 		FD_SET(master_socket, &readfs);
 		max_sd = master_socket;
 
-		for(int i = 0; i < max_clients; i++) {
+		for(int i = 0; i < MAX_CLIENTS; i++) {
 			// socket descriptor
-			sd = client_socket[i];
+			sd = g_client_socket[i];
 
 			// if valid socket descriptor then add to read list
 			if(sd > 0) FD_SET(sd, &readfs);
@@ -165,18 +178,19 @@ main(int argc, char **argv) {
 				perror("Error on send()! Message:");
 			}
 
-			// assign a new id for the new client
-			for(int i=0; i < max_clients; i++) {
-				if(client_socket[i] == 0) {
-					client_socket[i] = new_socket;
+			// assign a new id to the new client
+			for(int i=0; i < MAX_CLIENTS; i++) {
+				if(g_client_socket[i] == 0) {
+					g_client_socket[i] = new_socket;
 					break;
 				}
 			}
+
 		}
 
 		// if its not on the master socket then its a received msg or smth
-		for(int i=0; i < max_clients; i++) {
-			sd = client_socket[i];
+		for(int i=0; i < MAX_CLIENTS; i++) {
+			sd = g_client_socket[i];
 
 			if(FD_ISSET(sd, &readfs)) {
 				// if some1 wants to disconnect
@@ -184,7 +198,7 @@ main(int argc, char **argv) {
 					getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 					printf("Host disconnected: %s:%d!\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 					close(sd);
-					client_socket[i] = 0;
+					g_client_socket[i] = 0;
 				}
 
 				else {
