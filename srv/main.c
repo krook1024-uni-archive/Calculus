@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -45,12 +46,13 @@ void license(void);
 void usage(void);
 void printlogo(void);
 char *concat(const char*, const char*);
-int strContains(const char*, const char*);
+bool strContains(const char*, const char*);
 int countConnected(void);
 
 int countBattles(void);
 void resetBattle(int, const int);
-int isInBattle(int);
+int getClientBattleId(int);
+bool isInBattle(int);
 void printBattleStats(int);
 
 void disconnectPeer(int);
@@ -206,12 +208,12 @@ main(int argc, char **argv) {
 
 					// only if both are still connected
 					if(new_socket > 0 && g_client_socket[new_socket_id-1] > 0) {
-						int new_battle_id = (countBattles() == 0) ? 0 : countBattles() + 1;
+						int new_battle_id = (countBattles() == 0) ? 0 : countBattles();
 
 						g_battles[new_battle_id].p1 = new_socket_id-1;
 						g_battles[new_battle_id].p2 = new_socket_id;
 
-						printf("Creating a battle for %d and %d!\n", new_socket_id, new_socket_id-1);
+						printf("Creating a battle for %d and %d (battle id: %d)!\n", new_socket_id, new_socket_id-1, new_battle_id);
 						printBattleStats(new_battle_id);
 					}
 				}
@@ -287,7 +289,7 @@ char
 	free(result);
 }
 
-int
+bool
 strContains(const char *haystack, const char *needle) {
 	char *retPtr = strcasestr(haystack, needle);
 	if(retPtr != NULL) {
@@ -297,7 +299,8 @@ strContains(const char *haystack, const char *needle) {
 	return 0;
 }
 
-int countConnected(void) {
+int
+countConnected(void) {
 	int counter = 0;
 	for(int i=0; i < MAX_CLIENTS; i++) {
 		if(g_client_socket[i] != 0)
@@ -306,16 +309,19 @@ int countConnected(void) {
 	return counter;
 }
 
-int countBattles(void) {
+int
+countBattles(void) {
 	int counter = 0;
+	// we assume it's a battle if the two players init aren't the same
 	for(int i=0; i < MAX_BATTLES; i++) {
-		if(g_battles[i].p1 != 0 && g_battles[i].p2 != 0)
+		if(g_battles[i].p1 != g_battles[i].p2)
 			counter++;
 	}
 	return counter;
 }
 
-void resetBattle(int battleid, const int rocks_per_stack) {
+void
+resetBattle(int battleid, const int rocks_per_stack) {
 	g_battles[battleid].p1 = 0;
 	g_battles[battleid].p2 = 0;
 
@@ -324,28 +330,37 @@ void resetBattle(int battleid, const int rocks_per_stack) {
 	}
 }
 
-int isInBattle(int client_id) {
-	int retVal = 0;
+int
+getClientBattleId(int client_id) {
+	int retVal = -1;
 	for(int i=0; i < MAX_BATTLES; i++) {
-		if(g_battles[i].p1 == client_id && g_battles[i].p2 == client_id ) {
-			retVal = 1;
+		// check if the user is in a battle AND they are not battling themselves
+		if( (g_battles[i].p1 == client_id || g_battles[i].p2 == client_id) && (g_battles[i].p1 != g_battles[i].p2) ) {
+			retVal = i;
 			break;
 		}
 	}
-
+	printf("clid = %d retval = %d\n", client_id, retVal);
 	return retVal;
 }
 
-void printBattleStats(int battle_id) {
+bool
+isInBattle(int client_id) {
+	return ((getClientBattleId(client_id)) == -1) ? false : true;
+}
+
+void
+printBattleStats(int battle_id) {
 	printf("========[Battle %d]========\n", battle_id);
 	printf("- Player 1: %d\n", g_battles[battle_id].p1);
 	printf("- Player 2: %d\n", g_battles[battle_id].p2);
 	for(int i=0; i < 3; i++) {
-		printf("- Stack %i: %d\n", g_battles[battle_id].stack[i]);
+		printf("- Stack %i: %d\n", i, g_battles[battle_id].stack[i]);
 	}
 }
 
-void disconnectPeer(int client_id) {
+void
+disconnectPeer(int client_id) {
 	printf("Forcefully disconnecting peer (id: %d, fd: %d)!\n", client_id, g_client_socket[client_id]);
 	close(g_client_socket[client_id]);
 	g_client_socket[client_id] = 0;
@@ -353,10 +368,26 @@ void disconnectPeer(int client_id) {
 
 int
 onMessageReceived(const int client_id, const char* msg) {
-
-	// dc if wants to
-	if(strContains(msg, "dc")) {
+	// dc if user wants to
+	if(strContains(msg, "quit")) {
 		disconnectPeer(client_id);
+	}
+
+	if(isInBattle(client_id)) {
+		// taking
+		if(strContains(msg, "take")) {
+
+		}
+
+		// surrender
+		if(strContains(msg, "resign") || strContains(msg, "feladom")) {
+			printf("Client (id: %d, fd: %d) surrendered so we are disconnecting them and their partner (battle id: %d)!\n",
+					client_id, g_client_socket[client_id], getClientBattleId(client_id));
+			int battle_id = getClientBattleId(client_id);
+			disconnectPeer(g_battles[battle_id].p1);
+			disconnectPeer(g_battles[battle_id].p2);
+			resetBattle(battle_id, 12);
+		}
 	}
 
 	// echo everything back for now
