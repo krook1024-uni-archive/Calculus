@@ -22,13 +22,13 @@ Network architectures and protocolls.
 - [x] Implement game rules
 - [x] Resignation given the word `feladom` or `resign`
 - [x] Read messages from the client and act accordingly
-- [x] Recognize a win, let the users know, and exit (*exiting is required by the project*)
+- [x] Recognize a win, let the users know, and exit (*exiting is required by the assignment rules*)
 - [x] Send current battle's data to the client if requested
 - [x] Send server's rules to the client if requested
 
 **Client (Python):**
 
-- [ ] Basic server-client communication (connect, disconnect)
-- [ ] Build a basic GUI with [Kivy](https://kivy.org)
-- [ ] Connect to the server
+- [x] Basic server-client communication (connect, disconnect)
+- [x] Connect to the server
 - [ ] Act accordingly to user input
+- [ ] Build a basic GUI 

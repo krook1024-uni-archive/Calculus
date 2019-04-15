@@ -1,41 +1,158 @@
 #!/usr/bin/env python3
+#            _            _
+#           | |          | |
+#   ___ __ _| | ___ _   _| |_   _ ___
+#  / __/ _` | |/ __| | | | | | | / __|    v0.1.0
+# | (_| (_| | | (__| |_| | | |_| \__ \
+#  \___\__,_|_|\___|\__,_|_|\__,_|___/
+#
+#
+#    Calculus - a simple terminal-based game based on socket programming
+#    Copyright (C) 2019 Molnár Antal Albert
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from kivy.app import App
-from kivy.uix.widget import Widget
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.screenmanager import ScreenManager, Screen
-import time
+import sys
+import socket
+import time as t
 
-class CalculusLoadScreen(Screen):
-    pass
+###########################################################################################
 
-class CalculusGameScreen(Screen):
-    def takeFrom(self, stack):
-        self.ids.feedback.text = "You've taken\nfrom stack" + str(stack)
+class CalcSocket:
+    def __init__(self, serverIP, serverPort):
+        self.serverIP = serverIP
+        self.serverPort = serverPort
 
-class CalculusWinScreen(Screen):
-    pass
+        self.rocksPerStack = 0
+        self.maxTakable = 0
 
-class CalculusLostScreen(Screen):
-    pass
+        # Create a socket and connect to it
+        self.createSocket()
+        self.connectToServer()
+        t.sleep(1)
 
-################################################################
+        # Get the server rules
+        self.getRules()
+        t.sleep(1)
 
+        # Run the main loop
+        self.mainLoop()
 
-sm = ScreenManager()
-sm.add_widget(CalculusLoadScreen(name='load'))
-sm.add_widget(CalculusGameScreen(name='game'))
-sm.add_widget(CalculusWinScreen(name='win'))
-sm.add_widget(CalculusLostScreen(name='lost'))
+        # Close the socket
+        self.closeSocket()
 
-class CalculusApp(App):
-    def build(self):
-        return sm
+    def createSocket(self):
+        try:
+            self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            print("Socket created...")
+        except socket.error as err:
+            print("Socket failed to create! Message: " + str(err))
+            exit(1)
 
-    sm.current='game'
+    def connectToServer(self):
+        try:
+            self.s.connect((self.serverIP, self.serverPort))
+            print("Connected to " + str(self.serverIP) + ":" + str(self.serverPort))
+            t.sleep(1)
+            print(self.receiveMsg())
+        except socket.error as err:
+            print("Failed to connect! Message: " + str(err))
+            exit(1)
 
-################################################################
+    def getRules(self):
+        print("Requesting rules from the server...")
+        self.sendMsg("rules")
+        reply = self.receiveMsg()
+        print(reply)
+        self.maxTakable = int(reply.split('max_takable')[1])
+        print("Setting maxTakable to", self.maxTakable)
 
+    def mainLoop(self):
+        while(True):
+            received = self.receiveMsg()
+            print(received)
+
+            if "ur next" in received:
+                (whichOne, howMany) = self.prompt()
+                self.sendMsg("take " + str(whichOne) + " " + str(howMany))
+
+    def prompt(self):
+        r1 = range(1, 3)
+        r2 = range(1, self.maxTakable)
+
+        whichOne = int(input("Which stack do you want to take rocks from? "))
+        howMany = int(input("How many rocks do you want to take? "))
+
+        if whichOne not in r1:
+            self.prompt()
+
+        if howMany not in r2:
+            self.prompt()
+
+        return (whichOne, howMany)
+
+    def sendMsg(self, msg):
+        msg = msg.encode()
+        sent = self.s.sendall(msg)
+        if sent != None:
+            raise RuntimeError("socket connection broken")
+
+    def receiveMsg(self):
+        return self.s.recv(1024).decode()
+
+    def closeSocket(self):
+        print("Exiting now...")
+        self.s.close()
+
+###########################################################################################
+def usage():
+    print("USAGE: client [server IP] [server port]")
+
+def isValidIP(address):
+    try:
+        socket.inet_pton(socket.AF_INET, address)
+    except AttributeError:
+        try:
+            socket.inet_aotn(address)
+        except socket.error:
+            return False
+        return address.count('.') == 3
+    except socket.error:
+        return False
+
+    return True
+
+def main():
+    argnum = len(sys.argv)
+
+    if argnum < 3:
+        usage()
+        exit(1)
+
+    serverIP = sys.argv[1]
+    serverPort = int(sys.argv[2])
+
+    if not isValidIP(serverIP):
+        usage()
+        exit(1)
+
+    if serverPort > 65535 or serverPort < 1024:
+        usage()
+        exit(1)
+
+    CalcSocket(serverIP, serverPort)
+###########################################################################################
+# Call main
 if __name__ == '__main__':
-    CalculusApp().run()
-
+    main()
