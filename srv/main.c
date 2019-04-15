@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdarg.h> // concat
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -46,7 +47,7 @@
 void license(void);
 void usage(void);
 void printlogo(void);
-char *concat(const char*, const char*);
+char *concat(int, ...);
 bool strContains(const char*, const char*);
 char *intToString(const int);
 
@@ -290,13 +291,31 @@ printlogo(void) {
 	printf("\n");
 }
 
-char
-*concat(const char *s1, const char *s2) {
-	char *result = malloc(strlen(s1) + strlen(s2) + 1);
-	strcpy(result, s1);
-	strcat(result, s2);
-	return result;
-	free(result);
+char*
+concat(int count, ...) {
+	va_list ap;
+
+	// Find required length to store merged string
+	int len = 1; // room for NULL
+	va_start(ap, count);
+	for(int i=0; i < count; i++)
+		len += strlen(va_arg(ap, char*));
+	va_end(ap);
+
+	// Allocate memory to concat strings
+	char *merged = calloc(sizeof(char),len);
+	int null_pos = 0;
+
+	// Actually concatenate strings
+	va_start(ap, count);
+	for(int i=0; i < count; i++) {
+		char *s = va_arg(ap, char*);
+		strcpy(merged+null_pos, s);
+		null_pos += strlen(s);
+	}
+	va_end(ap);
+
+	return merged;
 }
 
 bool
@@ -329,9 +348,10 @@ countConnected(void) {
 }
 
 void sendServerRules(int client_id, int max_takable) {
-	sendMessage(client_id, "max_takable ");
-	sendMessage(client_id, intToString(max_takable));
-	sendMessage(client_id, "\n");
+	char *str;
+	str = concat(3, "max_takable ", intToString(max_takable), "\n");
+	sendMessage(client_id, str);
+	free(str);
 }
 
 int
@@ -393,17 +413,11 @@ sendBattleStats(int client_id) {
 		stack2 = g_battles[battle_id].stack[1],
 		stack3 = g_battles[battle_id].stack[2];
 
-	sendMessage(client_id, "stack1 ");
-	sendMessage(client_id, intToString(stack1));
-	sendMessage(client_id, "\n");
+	char *str;
 
-	sendMessage(client_id, "stack2 ");
-	sendMessage(client_id, intToString(stack2));
-	sendMessage(client_id, "\n");
-
-	sendMessage(client_id, "stack3 ");
-	sendMessage(client_id, intToString(stack3));
-	sendMessage(client_id, "\n");
+	str = concat(3, "stack1 ", intToString(stack1), "\n"); 	sendMessage(client_id, str); free(str);
+	str = concat(3, "stack2 ", intToString(stack2), "\n"); 	sendMessage(client_id, str); free(str);
+	str = concat(3, "stack3 ", intToString(stack3), "\n"); 	sendMessage(client_id, str); free(str);
 }
 
 int
