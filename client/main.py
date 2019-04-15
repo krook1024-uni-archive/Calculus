@@ -79,12 +79,6 @@ class CalcSocket:
             received = self.receiveMsg()
             print(received)
 
-            if "ur next" in received:
-                self.getStats()
-                (whichOne, howMany) = self.prompt()
-                self.sendMsg("take " + str(whichOne) + " " + str(howMany))
-                self.getStats()
-
             if "u lost" in received:
                 print("You lost this game!")
                 self.closeSocket()
@@ -95,7 +89,14 @@ class CalcSocket:
                 self.closeSocket()
                 exit(1)
 
-    def getStats(self):
+            if "ur next" in received:
+                self.printStats()
+                (whichOne, howMany) = self.prompt()
+                self.sendMsg("take " + str(whichOne) + " " + str(howMany))
+                self.printStats()
+
+    def printStats(self):
+        # TODO: actually parse stats
         self.sendMsg("stats")
         reply = self.receiveMsg().rstrip('\n')
         print(reply)
@@ -142,7 +143,7 @@ def isValidIP(address):
         return False
 
     return True
-
+###########################################################################################
 def main():
     argnum = len(sys.argv)
 
