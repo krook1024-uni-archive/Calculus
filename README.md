@@ -30,5 +30,7 @@ Network architectures and protocolls.
 
 - [x] Basic server-client communication (connect, disconnect)
 - [x] Connect to the server
+- [x] Receive the rules from the server
+- [ ] Receive data about stacks from the server
 - [ ] Act accordingly to user input
 - [ ] Build a basic GUI 
