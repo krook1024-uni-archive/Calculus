@@ -415,9 +415,14 @@ sendBattleStats(int client_id) {
 
 	char *str;
 
-	str = concat(3, "stack1 ", intToString(stack1), "\n"); 	sendMessage(client_id, str); free(str);
-	str = concat(3, "stack2 ", intToString(stack2), "\n"); 	sendMessage(client_id, str); free(str);
-	str = concat(3, "stack3 ", intToString(stack3), "\n"); 	sendMessage(client_id, str); free(str);
+	str = concat(9,
+				 "stack 1 ", intToString(stack1), " | ",
+				 "stack 2 ", intToString(stack2), " | ",
+				 "stack 3 ", intToString(stack3), "\n"
+				);
+
+	sendMessage(client_id, str);
+	free(str);
 }
 
 int
@@ -490,9 +495,9 @@ onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int
 
 								sendMessage(otherPlayer, "u lost :(\n");
 
-								printf("Player (id: %d) won against Player (id: %d). Exiting now!",
+								printf("Player (id: %d) won against Player (id: %d). Exiting now!\n",
 										client_id, otherPlayer);
-								exit(0);
+								sleep(3); exit(0);
 							} else {
 								// set pNext to other playa
 								g_battles[battle_id].pNext = (g_battles[battle_id].pNext == g_battles[battle_id].p1)
