@@ -238,10 +238,10 @@ main(int argc, char **argv) {
 				// if some1 wants to disconnect
 				if((valread = read(sd, buffer, 1024)) == 0) {
 					getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
-					printf("Host disconnected: %s:%d! Currently online users: %d.\n",
-							inet_ntoa(address.sin_addr), ntohs(address.sin_port), countConnected());
 					close(sd);
 					g_client_socket[i] = 0;
+					printf("Host disconnected: %s:%d! Currently online users: %d.\n",
+							inet_ntoa(address.sin_addr), ntohs(address.sin_port), countConnected());
 				}
 
 				else {
