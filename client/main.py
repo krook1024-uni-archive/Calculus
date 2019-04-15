@@ -40,11 +40,9 @@ class CalcSocket:
         # Create a socket and connect to it
         self.createSocket()
         self.connectToServer()
-        t.sleep(1)
 
         # Get the server rules
         self.getRules()
-        t.sleep(1)
 
         # Run the main loop
         self.mainLoop()
@@ -64,7 +62,6 @@ class CalcSocket:
         try:
             self.s.connect((self.serverIP, self.serverPort))
             print("Connected to " + str(self.serverIP) + ":" + str(self.serverPort))
-            t.sleep(1)
             print(self.receiveMsg())
         except socket.error as err:
             print("Failed to connect! Message: " + str(err))
@@ -74,7 +71,6 @@ class CalcSocket:
         print("Requesting rules from the server...")
         self.sendMsg("rules")
         reply = self.receiveMsg()
-        print(reply)
         self.maxTakable = int(reply.split('max_takable')[1])
         print("Setting maxTakable to", self.maxTakable)
 
@@ -84,20 +80,34 @@ class CalcSocket:
             print(received)
 
             if "ur next" in received:
+                self.getStats()
                 (whichOne, howMany) = self.prompt()
                 self.sendMsg("take " + str(whichOne) + " " + str(howMany))
+                self.getStats()
+
+            if "u lost" in received:
+                print("You lost this game!")
+                self.closeSocket()
+                exit(1)
+
+            if "u won" in received:
+                print("You won the game! Congratulations!")
+                self.closeSocket()
+                exit(1)
+
+    def getStats(self):
+        self.sendMsg("stats")
+        reply = self.receiveMsg().rstrip('\n')
+        print(reply)
 
     def prompt(self):
-        r1 = range(1, 3)
-        r2 = range(1, self.maxTakable)
-
         whichOne = int(input("Which stack do you want to take rocks from? "))
         howMany = int(input("How many rocks do you want to take? "))
 
-        if whichOne not in r1:
+        if not 1 <= whichOne <= 3:
             self.prompt()
 
-        if howMany not in r2:
+        if not 1 <= howMany <= self.maxTakable:
             self.prompt()
 
         return (whichOne, howMany)
