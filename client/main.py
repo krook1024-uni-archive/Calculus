@@ -37,6 +37,8 @@ class CalcSocket:
         self.rocksPerStack = 0
         self.maxTakable = 0
 
+        self.stacks = []
+
         # Create a socket and connect to it
         self.createSocket()
         self.connectToServer()
@@ -90,20 +92,37 @@ class CalcSocket:
                 exit(1)
 
             if "ur next" in received:
+                self.getStats()
                 self.printStats()
                 (whichOne, howMany) = self.prompt()
                 self.sendMsg("take " + str(whichOne) + " " + str(howMany))
-                self.printStats()
+                print("Waiting for the other player...")
 
-    def printStats(self):
-        # TODO: actually parse stats
+    def getStats(self):
         self.sendMsg("stats")
-        reply = self.receiveMsg().rstrip('\n')
+        reply = self.receiveMsg()
+
         print(reply)
 
+        reply = reply.rstrip('\n').split('|')
+
+        self.stacks.append(int(reply[0].strip().split(' ')[2]))
+        self.stacks.append(int(reply[1].strip().split(' ')[2]))
+        self.stacks.append(int(reply[2].strip().split(' ')[2]))
+
+    def printStats(self):
+        print("> The first stack has", self.stacks[0], "rocks.")
+        print("> The second stack has", self.stacks[1], "rocks.")
+        print("> The third stack has", self.stacks[2], "rocks.")
+
     def prompt(self):
-        whichOne = int(input("Which stack do you want to take rocks from? "))
-        howMany = int(input("How many rocks do you want to take? "))
+        whichOne = howMany = -1
+
+        try:
+            whichOne = int(input("Which stack do you want to take rocks from? (1-3): "))
+            howMany = int(input("How many rocks do you want to take? (1-"+str(min(self.maxTakable, self.stacks[whichOne-1]))+"): "))
+        except ValueError:
+            return self.prompt()
 
         if not 1 <= whichOne <= 3:
             self.prompt()
@@ -120,7 +139,7 @@ class CalcSocket:
             raise RuntimeError("socket connection broken")
 
     def receiveMsg(self):
-        return self.s.recv(1024).decode()
+        return self.s.recv(1024).decode() # does not always work
 
     def closeSocket(self):
         print("Exiting now...")
@@ -155,12 +174,10 @@ def main():
     serverPort = int(sys.argv[2])
 
     if not isValidIP(serverIP):
-        usage()
-        exit(1)
+        raise RuntimeError('Invalid IP address given.')
 
     if serverPort > 65535 or serverPort < 1024:
-        usage()
-        exit(1)
+        raise RuntimeError('Invalid port given (1024-65534)')
 
     CalcSocket(serverIP, serverPort)
 ###########################################################################################
