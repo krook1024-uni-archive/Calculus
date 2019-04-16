@@ -57,6 +57,7 @@ int countBattles(void);
 void resetBattle(int, const int);
 int getClientBattleId(int);
 bool isInBattle(int);
+int getOtherPlayerId(int);
 void printBattleStats(int);
 void sendBattleStats(int);
 int sumRocks(int);
@@ -239,10 +240,20 @@ main(int argc, char **argv) {
 				// if some1 wants to disconnect
 				if((valread = read(sd, buffer, 1024)) == 0) {
 					getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
+
+					bool wasInBattle = isInBattle(i);
+
+					printf("Disconnecting host is currently in a battle so we're resetting "
+							"the battle and kicking the other party out!\n");
+
+					disconnectPeer(getOtherPlayerId(i));
+					resetBattle(getClientBattleId(i), rocks_per_stack);
+
 					close(sd);
 					g_client_socket[i] = 0;
 					printf("Host disconnected: %s:%d! Currently online users: %d.\n",
 							inet_ntoa(address.sin_addr), ntohs(address.sin_port), countConnected());
+
 				}
 
 				else {
@@ -394,6 +405,13 @@ isInBattle(int client_id) {
 	return ((getClientBattleId(client_id)) == -1) ? false : true;
 }
 
+int
+getOtherPlayerId(int client_id) {
+	int battle_id = getClientBattleId(client_id);
+	return (g_battles[battle_id].p1 == client_id) ?	g_battles[battle_id].p2
+												  : g_battles[battle_id].p1;
+}
+
 void
 printBattleStats(int battle_id) {
 	printf("========[Battle %d]========\n", battle_id);
@@ -491,7 +509,8 @@ onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int
 								sendMessage(client_id, "u won m8\n");
 
 								// determine other player
-								int otherPlayer = (g_battles[battle_id].p1 == client_id) ? g_battles[battle_id].p2 : g_battles[battle_id].p1;
+								//int otherPlayer = (g_battles[battle_id].p1 == client_id) ? g_battles[battle_id].p2 : g_battles[battle_id].p1;
+								int otherPlayer = getOtherPlayerId(client_id);
 
 								sendMessage(otherPlayer, "u lost :(\n");
 
