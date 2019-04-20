@@ -130,15 +130,24 @@ class CalcSocket:
         print("> The second stack has", self.stacks[1], "rocks.")
         print("> The third stack has", self.stacks[2], "rocks.")
 
+    def resign(self):
+        print("You've resigned so you've lost this game!")
+        self.sendMsg("resign")
+        self.closeSocket()
+        exit(0)
+
     def prompt(self):
         whichOne = howMany = -1
 
         whichOneIn = input("Which stack do you want to take rocks from? (1-3): ")
+
+        if "feladom" in whichOneIn or "resign" in whichOneIn:
+            self.resign()
+
         howManyIn = input("How many rocks do you want to take? (1-"+str(min(self.maxTakable, self.stacks[whichOne-1]))+"): ")
 
-        if "feladom" in whichOneIn or "feladom" in howManyIn or "resign" in whichOneIn or "resign" in howManyIn:
-            self.sendMsg("feladom")
-            exit(0)
+        if "feladom" in howManyIn or "resign" in howManyIn:
+            self.resign()
 
         try:
             whichOne = int(whichOneIn)
