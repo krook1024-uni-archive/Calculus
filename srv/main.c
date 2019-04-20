@@ -537,6 +537,7 @@ onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int
 			printf("Client (id: %d, fd: %d) surrendered so we are disconnecting them and their partner (battle id: %d)!\n",
 					client_id, g_client_socket[client_id], getClientBattleId(client_id));
 			int battle_id = getClientBattleId(client_id);
+			sendMessage(getOtherPlayerId(client_id), "surrender");
 			disconnectPeer(g_battles[battle_id].p1);
 			disconnectPeer(g_battles[battle_id].p2);
 			resetBattle(battle_id, rocks_per_stack);
