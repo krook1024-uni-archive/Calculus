@@ -102,9 +102,13 @@ class CalcSocket:
         self.sendMsg("stats")
         reply = self.receiveMsg()
 
-        print(reply)
+        # DEBUG
+        # print(reply)
 
         reply = reply.rstrip('\n').split('|')
+
+        del self.stacks
+        self.stacks = []
 
         self.stacks.append(int(reply[0].strip().split(' ')[2]))
         self.stacks.append(int(reply[1].strip().split(' ')[2]))
