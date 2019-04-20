@@ -79,7 +79,18 @@ class CalcSocket:
     def mainLoop(self):
         while(True):
             received = self.receiveMsg()
+
+            if len(received) == 0:
+                break
+                self.closeSocket()
+                raise RuntimeError("Socket connection broken!")
+
             print(received)
+
+            if "surrender" in received:
+                print("The other party has surrendered so you win this game!")
+                exit(1)
+
 
             if "u lost" in received:
                 print("You lost this game!")
@@ -122,9 +133,16 @@ class CalcSocket:
     def prompt(self):
         whichOne = howMany = -1
 
+        whichOneIn = input("Which stack do you want to take rocks from? (1-3): ")
+        howManyIn = input("How many rocks do you want to take? (1-"+str(min(self.maxTakable, self.stacks[whichOne-1]))+"): ")
+
+        if "feladom" in whichOneIn or "feladom" in howManyIn or "resign" in whichOneIn or "resign" in howManyIn:
+            self.sendMsg("feladom")
+            exit(0)
+
         try:
-            whichOne = int(input("Which stack do you want to take rocks from? (1-3): "))
-            howMany = int(input("How many rocks do you want to take? (1-"+str(min(self.maxTakable, self.stacks[whichOne-1]))+"): "))
+            whichOne = int(whichOneIn)
+            howMany = int(howManyIn)
         except ValueError:
             return self.prompt()
 
