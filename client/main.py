@@ -143,7 +143,10 @@ class CalcSocket:
             raise RuntimeError("socket connection broken")
 
     def receiveMsg(self):
-        return self.s.recv(1024).decode() # does not always work
+        # warning, this is buggy.
+        # sometimes, not the whole message is received, only a part of it.
+        # :(
+        return self.s.recv(1024).decode()
 
     def closeSocket(self):
         print("Exiting now...")
