@@ -204,8 +204,12 @@ def main():
         usage()
         exit(1)
 
-    serverIP = sys.argv[1]
-    serverPort = int(sys.argv[2])
+    try:
+        serverIP = sys.argv[1]
+        serverPort = int(sys.argv[2])
+    except:
+        usage()
+        exit(1)
 
     if not isValidIP(serverIP):
         raise RuntimeError('Invalid IP address given.')
