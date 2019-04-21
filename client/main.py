@@ -155,11 +155,11 @@ class CalcSocket:
         except ValueError:
             return self.prompt()
 
-        if not 1 <= whichOne <= 3:
-            self.prompt()
+        if not (1 <= whichOne <= 3):
+            return self.prompt()
 
-        if not 1 <= howMany <= self.maxTakable:
-            self.prompt()
+        if not (1 <= howMany <= self.maxTakable):
+            return self.prompt()
 
         return (whichOne, howMany)
 
