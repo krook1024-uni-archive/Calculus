@@ -44,27 +44,30 @@
 #define MAX_CLIENTS 30
 #define MAX_BATTLES 15 // should always be (MAX_CLIENTS/2)
 
+#define MSG_LEN 128
+
 void license(void);
 void usage(void);
 void printlogo(void);
 char *concat(int, ...);
-bool strContains(const char*, const char*);
-char *intToString(const int);
+bool str_contains(const char*, const char*);
+char *str_pad(char*, int);
+char *int_to_string(const int);
 
-int countConnected(void);
-void sendServerRules(int, int);
-int countBattles(void);
-void resetBattle(int, const int);
-int getClientBattleId(int);
-bool isInBattle(int);
-int getOtherPlayerId(int);
-void printBattleStats(int);
-void sendBattleStats(int);
-int sumRocks(int);
+int count_connected(void);
+void send_server_rules(int, int);
+int count_battles(void);
+void reset_battle(int, const int);
+int get_client_battle_id(int);
+bool is_in_battle(int);
+int get_other_player_id(int);
+void print_battle_stats(int);
+void send_battle_stats(int);
+int sum_rocks(int);
 
-void disconnectPeer(int);
-void sendMessage(int, const char*);
-bool onMessageReceived(const int, const char*, int, int);
+void disconnect_peer(int);
+void send_message(int, char*);
+bool on_msg_recv(const int, const char*, int, int);
 
 typedef struct Battle {
 	int p1, p2, pNext, stack[3];
@@ -111,7 +114,7 @@ main(int argc, char **argv) {
 	unsigned short int master_socket, addrlen, new_socket, activity, valread, sd, max_sd;
 	struct sockaddr_in address;
 	char *welcome_msg = "Welcome to Calculus!\n";
-	char buffer[1024 + 1];
+	char buffer[MSG_LEN + 1];
 
 	fd_set readfs;
 
@@ -122,7 +125,7 @@ main(int argc, char **argv) {
 
 	// reset every battle "room"
 	for(int i=0; i < MAX_BATTLES; i++) {
-		resetBattle(i, rocks_per_stack);
+		reset_battle(i, rocks_per_stack);
 	}
 
 	// master socket
@@ -183,17 +186,19 @@ main(int argc, char **argv) {
 		if((activity < 0) && (errno != EINTR)) printf("\nError on select()!\n");
 
 		// only accept new connection if we have enough slots
-		if(countConnected() < MAX_CLIENTS) {
+		if(count_connected() < MAX_CLIENTS) {
 			// activity on the master socket = new connection
 			if(FD_ISSET(master_socket, &readfs)) {
 				if((new_socket = accept(master_socket, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
 					perror("\nError on accept()! Message");
 				}
 
+				/*
 				// greet new users
 				if(send(new_socket, welcome_msg, strlen(welcome_msg), 0) != strlen(welcome_msg)) {
 					perror("Error on send()! Message:");
 				}
+				*/
 
 				int new_socket_id;
 				// assign a new id to the new client
@@ -205,28 +210,29 @@ main(int argc, char **argv) {
 					}
 				}
 
+				send_message(new_socket_id, "Welcome to Calculus!");
+
 				printf("New connection from %s:%d (id: %d, socket fd: %d)! Currently online users: %d.\n",
-						inet_ntoa(address.sin_addr), ntohs(address.sin_port), new_socket_id, new_socket, countConnected());
+						inet_ntoa(address.sin_addr), ntohs(address.sin_port), new_socket_id, new_socket, count_connected());
 
 				// create a battle for every second player and the player before them
-				if((countConnected() % 2) == 0) {
+				if((count_connected() % 2) == 0) {
 					/*for(int i=0; i < MAX_CLIENTS; i++) {
 						printf("g_clienT_socket[%d]: %d\n", i, g_client_socket[i]);
 					}*/
 
 					// only if both are still connected
 					if(new_socket > 0 && g_client_socket[new_socket_id-1] > 0) {
-						int new_battle_id = (countBattles() == 0) ? 0 : countBattles();
+						int new_battle_id = (count_battles() == 0) ? 0 : count_battles();
 
 						g_battles[new_battle_id].p1 = new_socket_id-1;
 						g_battles[new_battle_id].p2 = new_socket_id;
 						g_battles[new_battle_id].pNext = g_battles[new_battle_id].p1;
 
 						printf("Creating a battle for %d and %d (battle id: %d)!\n", new_socket_id, new_socket_id-1, new_battle_id);
-						printBattleStats(new_battle_id);
+						print_battle_stats(new_battle_id);
 
-
-						sendMessage(g_battles[new_battle_id].pNext, "ur next\n");
+						send_message(g_battles[new_battle_id].pNext, "NEXT");
 					}
 				}
 			}
@@ -241,18 +247,18 @@ main(int argc, char **argv) {
 				if((valread = read(sd, buffer, 1024)) == 0) {
 					getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 
-					bool wasInBattle = isInBattle(i);
+					bool wasInBattle = is_in_battle(i);
 
 					printf("Disconnecting host is currently in a battle so we're resetting "
 							"the battle and kicking the other party out!\n");
 
-					disconnectPeer(getOtherPlayerId(i));
-					resetBattle(getClientBattleId(i), rocks_per_stack);
+					disconnect_peer(get_other_player_id(i));
+					reset_battle(get_client_battle_id(i), rocks_per_stack);
 
 					close(sd);
 					g_client_socket[i] = 0;
 					printf("Host disconnected: %s:%d! Currently online users: %d.\n",
-							inet_ntoa(address.sin_addr), ntohs(address.sin_port), countConnected());
+							inet_ntoa(address.sin_addr), ntohs(address.sin_port), count_connected());
 
 				}
 
@@ -260,10 +266,10 @@ main(int argc, char **argv) {
 					// else read input from client
 					buffer[valread] = '\0';
 
-					// call onMessageReceived() which is our handler function for incomming messages
-					if(!onMessageReceived(i, buffer, rocks_per_stack, max_takable)) {
+					// call on_msg_recv() which is our handler function for incomming messages
+					if(!on_msg_recv(i, buffer, rocks_per_stack, max_takable)) {
 						getpeername(sd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
-						printf("Error on onMessageReceived()! Client (id: %d): %s:%p\n", sd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+						printf("Error on on_msg_recv()! Client (id: %d): %s:%p\n", sd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 					}
 				}
 			}
@@ -330,7 +336,7 @@ concat(int count, ...) {
 }
 
 bool
-strContains(const char *haystack, const char *needle) {
+str_contains(const char *haystack, const char *needle) {
 	char *retPtr = strcasestr(haystack, needle);
 	if(retPtr != NULL) {
 		return 1;
@@ -339,8 +345,13 @@ strContains(const char *haystack, const char *needle) {
 	return 0;
 }
 
-char
-*intToString(const int n) {
+char*
+str_pad(char *str, int new_len) {
+	return str;
+}
+
+char*
+int_to_string(const int n) {
 	int len = snprintf(NULL, 0, "%d", n);
 	char *str = malloc(len + 1);
 	snprintf(str, len + 1, "%d", n);
@@ -349,7 +360,7 @@ char
 }
 
 int
-countConnected(void) {
+count_connected(void) {
 	int counter = 0;
 	for(int i=0; i < MAX_CLIENTS; i++) {
 		if(g_client_socket[i] != 0)
@@ -358,15 +369,15 @@ countConnected(void) {
 	return counter;
 }
 
-void sendServerRules(int client_id, int max_takable) {
+void send_server_rules(int client_id, int max_takable) {
 	char *str;
-	str = concat(3, "max_takable ", intToString(max_takable), "\n");
-	sendMessage(client_id, str);
+	str = concat(2, "max_takable ", int_to_string(max_takable));
+	send_message(client_id, str);
 	free(str);
 }
 
 int
-countBattles(void) {
+count_battles(void) {
 	int counter = 0;
 	// we assume it's a battle if the two players init aren't the same
 	for(int i=0; i < MAX_BATTLES; i++) {
@@ -377,7 +388,7 @@ countBattles(void) {
 }
 
 void
-resetBattle(int battleid, const int rocks_per_stack) {
+reset_battle(int battleid, const int rocks_per_stack) {
 	g_battles[battleid].p1 = 0;
 	g_battles[battleid].p2 = 0;
 	g_battles[battleid].pNext = 0;
@@ -388,7 +399,7 @@ resetBattle(int battleid, const int rocks_per_stack) {
 }
 
 int
-getClientBattleId(int client_id) {
+get_client_battle_id(int client_id) {
 	int retVal = -1;
 	for(int i=0; i < MAX_BATTLES; i++) {
 		// check if the user is in a battle AND they are not battling themselves
@@ -401,19 +412,19 @@ getClientBattleId(int client_id) {
 }
 
 bool
-isInBattle(int client_id) {
-	return ((getClientBattleId(client_id)) == -1) ? false : true;
+is_in_battle(int client_id) {
+	return ((get_client_battle_id(client_id)) == -1) ? false : true;
 }
 
 int
-getOtherPlayerId(int client_id) {
-	int battle_id = getClientBattleId(client_id);
+get_other_player_id(int client_id) {
+	int battle_id = get_client_battle_id(client_id);
 	return (g_battles[battle_id].p1 == client_id) ?	g_battles[battle_id].p2
 												  : g_battles[battle_id].p1;
 }
 
 void
-printBattleStats(int battle_id) {
+print_battle_stats(int battle_id) {
 	printf("========[Battle %d]========\n", battle_id);
 	printf("- Player 1: %d\n", g_battles[battle_id].p1);
 	printf("- Player 2: %d\n", g_battles[battle_id].p2);
@@ -421,12 +432,12 @@ printBattleStats(int battle_id) {
 	for(int i=0; i < 3; i++) {
 		printf("- Stack %i: %d\n", i+1, g_battles[battle_id].stack[i]);
 	}
-	printf("- Sum of rocks: %d\n", sumRocks(battle_id));
+	printf("- Sum of rocks: %d\n", sum_rocks(battle_id));
 }
 
 void
-sendBattleStats(int client_id) {
-	int battle_id = getClientBattleId(client_id);
+send_battle_stats(int client_id) {
+	int battle_id = get_client_battle_id(client_id);
 	int stack1 = g_battles[battle_id].stack[0],
 		stack2 = g_battles[battle_id].stack[1],
 		stack3 = g_battles[battle_id].stack[2];
@@ -434,17 +445,17 @@ sendBattleStats(int client_id) {
 	char *str;
 
 	str = concat(9,
-				 "stack 1 ", intToString(stack1), " | ",
-				 "stack 2 ", intToString(stack2), " | ",
-				 "stack 3 ", intToString(stack3), "\n"
+				 "stack 1 ", int_to_string(stack1), " | ",
+				 "stack 2 ", int_to_string(stack2), " | ",
+				 "stack 3 ", int_to_string(stack3), "\n"
 				);
 
-	sendMessage(client_id, str);
+	send_message(client_id, str);
 	free(str);
 }
 
 int
-sumRocks(int battle_id) {
+sum_rocks(int battle_id) {
 	int retVal = 0;
 	for(int i=0; i < 3; i++) {
 		retVal += g_battles[battle_id].stack[i];
@@ -453,42 +464,32 @@ sumRocks(int battle_id) {
 }
 
 void
-disconnectPeer(int client_id) {
+disconnect_peer(int client_id) {
 	printf("Forcefully disconnecting peer (id: %d, fd: %d)!\n", client_id, g_client_socket[client_id]);
 	close(g_client_socket[client_id]);
 	g_client_socket[client_id] = 0;
 }
 
 void
-sendMessage(int client_id, const char* msg) {
-	if(send(g_client_socket[client_id], msg, strlen(msg), 0) != strlen(msg)) {
+send_message(int client_id, char* msg) {
+	printf("sending: %s\n", msg);
+	if(send(g_client_socket[client_id], msg, strlen(msg), 0) < strlen(msg)) {
 		perror("(SendMessage): Error on send()! Message");
 	}
 }
 
 bool
-onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int max_takable) {
+on_msg_recv(const int client_id, const char* msg, int rocks_per_stack, int max_takable) {
 	// dc if user wants to
-	if(strContains(msg, "quit")) {
-		disconnectPeer(client_id);
+	if(str_contains(msg, "quit")) {
+		disconnect_peer(client_id);
 	}
 
-	if(isInBattle(client_id)) {
+	if(is_in_battle(client_id)) {
 		// taking
-		int battle_id = getClientBattleId(client_id);
-		if(strContains(msg, "take")) {
+		int battle_id = get_client_battle_id(client_id);
+		if(str_contains(msg, "take")) {
 			int whichStack = 0,	howMany = 0;
-			/*char *strPtr = strcasestr(msg, "take");
-			if(strPtr != NULL) {
-				while(*strPtr) {
-					if(isdigit(*strPtr)) {
-						howMany = (int)strtoul(strPtr, &strPtr, 10);
-					} else {
-						strPtr++;
-					}
-				}
-			}*/
-			//printf("%s\n", msg);
 
 			// succesful user input
 			if(sscanf(msg, "take %d %d", &whichStack, &howMany) == 2) {
@@ -505,14 +506,13 @@ onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int
 							// reduce stack by $howMany
 							g_battles[battle_id].stack[whichStack] -= howMany;
 
-							if(sumRocks(battle_id) == 0) {
-								sendMessage(client_id, "u won m8\n");
+							if(sum_rocks(battle_id) == 0) {
+								send_message(client_id, "WON");
 
 								// determine other player
-								//int otherPlayer = (g_battles[battle_id].p1 == client_id) ? g_battles[battle_id].p2 : g_battles[battle_id].p1;
-								int otherPlayer = getOtherPlayerId(client_id);
+								int otherPlayer = get_other_player_id(client_id);
 
-								sendMessage(otherPlayer, "u lost :(\n");
+								send_message(otherPlayer, "LOST");
 
 								printf("Player (id: %d) won against Player (id: %d). Exiting now!\n",
 										client_id, otherPlayer);
@@ -522,10 +522,10 @@ onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int
 								g_battles[battle_id].pNext = (g_battles[battle_id].pNext == g_battles[battle_id].p1)
 									? g_battles[battle_id].p2 : g_battles[battle_id].p1;
 
-								sendMessage(g_battles[battle_id].pNext, "ur next\n");
+								send_message(g_battles[battle_id].pNext, "NEXT");
 							}
 
-							printBattleStats(battle_id);
+							print_battle_stats(battle_id);
 						}
 					}
 				}
@@ -533,29 +533,24 @@ onMessageReceived(const int client_id, const char* msg, int rocks_per_stack, int
 		}
 
 		// surrender
-		if(strContains(msg, "resign") || strContains(msg, "feladom")) {
+		if(str_contains(msg, "resign") || str_contains(msg, "feladom")) {
 			printf("Client (id: %d, fd: %d) surrendered so we are disconnecting them and their partner (battle id: %d)!\n",
-					client_id, g_client_socket[client_id], getClientBattleId(client_id));
-			int battle_id = getClientBattleId(client_id);
-			sendMessage(getOtherPlayerId(client_id), "surrender");
-			disconnectPeer(g_battles[battle_id].p1);
-			disconnectPeer(g_battles[battle_id].p2);
-			resetBattle(battle_id, rocks_per_stack);
+					client_id, g_client_socket[client_id], get_client_battle_id(client_id));
+			int battle_id = get_client_battle_id(client_id);
+			send_message(get_other_player_id(client_id), "SURRENDER");
+			disconnect_peer(g_battles[battle_id].p1);
+			disconnect_peer(g_battles[battle_id].p2);
+			reset_battle(battle_id, rocks_per_stack);
 		}
 
-		if(strContains(msg, "stats")) {
-			sendBattleStats(client_id);
+		if(str_contains(msg, "stats")) {
+			send_battle_stats(client_id);
 		}
 	}
 
-	if(strContains(msg, "rules")) {
-		sendServerRules(client_id, max_takable);
+	if(str_contains(msg, "rules")) {
+		send_server_rules(client_id, max_takable);
 	}
-
-	// echo everything back for now
-	/*char *reply = concat("Your message was: ", msg);
-	send(g_client_socket[client_id], reply, strlen(reply), 0);
-	free(reply);*/
 
 	return true;
 }

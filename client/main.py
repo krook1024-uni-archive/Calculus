@@ -27,10 +27,10 @@ import sys
 import socket
 import time as t
 
-###########################################################################################
-
 class CalcSocket:
     def __init__(self, serverIP, serverPort):
+        self.msgLen = 128
+
         self.serverIP = serverIP
         self.serverPort = serverPort
 
@@ -87,22 +87,22 @@ class CalcSocket:
 
             print(received)
 
-            if "surrender" in received:
+            if "SURRENDER" in received:
                 print("The other party has surrendered so you win this game!")
                 exit(1)
 
 
-            if "u lost" in received:
+            if "LOST" in received:
                 print("You lost this game!")
                 self.closeSocket()
                 exit(1)
 
-            if "u won" in received:
+            if "WON" in received:
                 print("You won the game! Congratulations!")
                 self.closeSocket()
                 exit(1)
 
-            if "ur next" in received:
+            if "NEXT" in received:
                 self.getStats()
                 self.printStats()
                 (whichOne, howMany) = self.prompt()
@@ -170,16 +170,24 @@ class CalcSocket:
             raise RuntimeError("socket connection broken")
 
     def receiveMsg(self):
-        # warning, this is buggy.
-        # sometimes, not the whole message is received, only a part of it.
-        # :(
-        return self.s.recv(1024).decode()
+        return self.s.recv(self.msgLen).decode()
+
+        # chunks = []
+        # bytes_recd = 0
+        # while bytes_recd < self.msgLen:
+        #     chunk = self.s.recv(self.msgLen)
+        #     if chunk == b'':
+        #         raise RuntimeError("socket connection broken")
+        #     chunks.append(chunk)
+        #     bytes_recd = bytes_recd + len(chunk)
+
+        # all_recd = b''.join(chunks)
+        # return all_recd
 
     def closeSocket(self):
         print("Exiting now...")
         self.s.close()
 
-###########################################################################################
 def usage():
     print("USAGE: client [server IP] [server port]")
 
@@ -196,7 +204,7 @@ def isValidIP(address):
         return False
 
     return True
-###########################################################################################
+
 def main():
     argnum = len(sys.argv)
 
@@ -218,7 +226,7 @@ def main():
         raise RuntimeError('Invalid port given (1024-65534)')
 
     CalcSocket(serverIP, serverPort)
-###########################################################################################
+
 # Call main
 if __name__ == '__main__':
     main()
