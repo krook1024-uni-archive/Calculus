@@ -13,7 +13,7 @@ test_srv: server
 	@./server 32152 4 4
 
 .PHONY:
-test_client:
+test_clt:
 	@./client/main.py 127.0.0.1 32152
 
 .PHONY:
