@@ -55,7 +55,7 @@ void printlogo(void);
 char *concat(int, ...);
 bool str_contains(const char*, const char*);
 char *str_pad(char*, int);
-char *int_to_string(const int);
+// char *int_to_string(const int); //
 
 int count_connected(void);
 void send_server_rules(int, int);

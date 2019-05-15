@@ -43,3 +43,8 @@ def isValidIP(address):
 
 def usage():
     print("USAGE: client [server IP] [server port]")
+
+def instructions():
+    print("-> To make a random choice, type `rand` at any time. Note: "
+            "This will make a random choice for both which stack "
+            "you want to take from and how many rocks you take.")

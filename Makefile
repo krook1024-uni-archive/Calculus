@@ -6,7 +6,7 @@ server: srv/main.c
 .PHONY:
 valgrind: clean server
 	@gcc -o server -g3 srv/*.c
-	@valgrind ./server 32152 4 4
+	@valgrind --leak-check=full ./server 32152 4 4
 	@rm -f -- vgcore*
 
 .PHONY: test_srv

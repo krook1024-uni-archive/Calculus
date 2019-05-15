@@ -109,14 +109,15 @@ str_pad(char *str, int new_len) {
 	return str;
 }
 
+/* BROKEN --- Causes heap leakage.
 char*
 int_to_string(const int n) {
 	int len = snprintf(NULL, 0, "%d", n);
-	char *str = malloc(len + 1);
+	char *str = (char*)malloc(sizeof(char) * len + 1);
 	snprintf(str, len + 1, "%d", n);
 	return str;
-	free(str);
 }
+*/
 
 int
 count_connected(void) {
@@ -130,7 +131,12 @@ count_connected(void) {
 
 void send_server_rules(int client_id, int max_takable) {
 	char *str;
-	str = concat(2, "max_takable ", int_to_string(max_takable));
+
+	// convert max_takable to string
+	char s_max_takable[20];
+	sprintf(s_max_takable, "%d", max_takable);
+
+	str = concat(2, "max_takable ", s_max_takable);
 	send_message(client_id, str);
 	free(str);
 }
@@ -203,10 +209,15 @@ send_battle_stats(int client_id) {
 
 	char *str;
 
+	char s_stack[3][20];
+	sprintf(s_stack[0], "%d", stack1);
+	sprintf(s_stack[1], "%d", stack2);
+	sprintf(s_stack[2], "%d", stack3);
+
 	str = concat(9,
-				 "stack 1 ", int_to_string(stack1), " | ",
-				 "stack 2 ", int_to_string(stack2), " | ",
-				 "stack 3 ", int_to_string(stack3), "\n"
+				 "stack 1 ", s_stack[0], " | ",
+				 "stack 2 ", s_stack[1], " | ",
+				 "stack 3 ", s_stack[2], "\n"
 				);
 
 	send_message(client_id, str);

@@ -26,6 +26,12 @@
 # This file stores the class CalcSocket for the project 'Calculus'.
 
 import socket
+import random
+import os
+
+random.seed(a=os.urandom(128))
+
+from fun import *
 
 class CalcSocket:
     def __init__(self, serverIP, serverPort):
@@ -65,6 +71,7 @@ class CalcSocket:
             self.s.connect((self.serverIP, self.serverPort))
             print("Connected to " + str(self.serverIP) + ":" + str(self.serverPort))
             print(self.receiveMsg())
+            instructions()
         except socket.error as err:
             print("Failed to connect! Message: " + str(err))
             exit(1)
@@ -74,7 +81,7 @@ class CalcSocket:
         self.sendMsg("rules")
         reply = self.receiveMsg()
         self.maxTakable = int(reply.split('max_takable')[1])
-        print("Setting maxTakable to", self.maxTakable)
+        print("-> You can take", self.maxTakable, "rocks at a time.")
 
     def mainLoop(self):
         while(True):
@@ -144,10 +151,16 @@ class CalcSocket:
         if "feladom" in whichOneIn or "resign" in whichOneIn:
             self.resign()
 
-        howManyIn = input("How many rocks do you want to take? (1-"+str(min(self.maxTakable, self.stacks[whichOne-1]))+"): ")
+        if "rand" in whichOneIn:
+            return (self.randomChoice())
+
+        howManyIn = input("How many rocks do you want to take? (1-"+str(min(self.maxTakable, self.stacks[int(whichOneIn)-1]))+"): ")
 
         if "feladom" in howManyIn or "resign" in howManyIn:
             self.resign()
+
+        if "rand" in whichOneIn:
+            return (self.randomChoice())
 
         try:
             whichOne = int(whichOneIn)
@@ -162,6 +175,29 @@ class CalcSocket:
             return self.prompt()
 
         return (whichOne, howMany)
+
+    def randomChoice(self):
+        try:
+            availableStacks = []
+            for i in range(0,2):
+                if self.stacks[i] > 0:
+                    availableStacks.append(i)
+
+            randStack = random.randint(1, len(availableStacks))
+            randNum = random.randint(1, self.maxTakable)
+
+            if randNum >= self.stacks[randStack]:
+                print("You chose to choose randomly! Taking", randNum, "rocks from"
+                      " stack", str(randStack) + ".")
+                return (randStack, randNum)
+            else:
+                return (self.randomChoice())
+        except ValueError:
+            return (self.randomChoice())
+        except:
+            print("Random choice is not available right now!")
+            print("You'll have to input number manually...")
+            return (self.prompt())
 
     def sendMsg(self, msg):
         msg = msg.encode()
