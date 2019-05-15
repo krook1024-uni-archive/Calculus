@@ -1,11 +1,11 @@
 all: server test_srv clean
 
 server: srv/main.c
-	@gcc -O3 -o server srv/main.c
+	@gcc -O3 -o server srv/*.c
 
 .PHONY:
 valgrind: clean server
-	@gcc -o server -g3 srv/main.c
+	@gcc -o server -g3 srv/*.c
 	@valgrind ./server 32152 4 4
 	@rm -f -- vgcore*
 
