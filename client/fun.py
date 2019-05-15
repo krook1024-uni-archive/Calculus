@@ -16,3 +16,5 @@ def isValidIP(address):
 
     return True
 
+def usage():
+    print("USAGE: client [server IP] [server port]")

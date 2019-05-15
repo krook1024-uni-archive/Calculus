@@ -30,9 +30,6 @@ import time as t
 from fun import *
 from CalcSocket import CalcSocket
 
-def usage():
-    print("USAGE: client [server IP] [server port]")
-
 def main():
     argnum = len(sys.argv)
 
