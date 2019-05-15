@@ -29,7 +29,7 @@ import time as t
 
 class CalcSocket:
     def __init__(self, serverIP, serverPort):
-        self.msgLen = 128
+        self.msgLen = 256 + 1
 
         self.serverIP = serverIP
         self.serverPort = serverPort
@@ -172,17 +172,19 @@ class CalcSocket:
     def receiveMsg(self):
         return self.s.recv(self.msgLen).decode()
 
-        # chunks = []
-        # bytes_recd = 0
-        # while bytes_recd < self.msgLen:
-        #     chunk = self.s.recv(self.msgLen)
-        #     if chunk == b'':
-        #         raise RuntimeError("socket connection broken")
-        #     chunks.append(chunk)
-        #     bytes_recd = bytes_recd + len(chunk)
+        """
+        chunks = []
+        bytes_recd = 0
+        while bytes_recd < (self.msgLen - bytes_recd):
+            chunk = self.s.recv(self.msgLen)
+            if chunk == b'':
+                raise RuntimeError("socket connection broken")
+            chunks.append(chunk)
+            bytes_recd = bytes_recd + len(chunk)
 
-        # all_recd = b''.join(chunks)
-        # return all_recd
+        all_recd = b''.join(chunks)
+        return all_recd
+        """
 
     def closeSocket(self):
         print("Exiting now...")

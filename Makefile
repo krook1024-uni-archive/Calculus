@@ -5,14 +5,15 @@ server: srv/main.c
 
 .PHONY:
 valgrind: clean server
+	@gcc -o server -g3 srv/main.c
 	@valgrind ./server 32152 4 4
 	@rm -f -- vgcore*
 
-.PHONY:
+.PHONY: test_srv
 test_srv: server
 	@./server 32152 4 4
 
-.PHONY:
+.PHONY: test_clt
 test_clt:
 	@./client/main.py 127.0.0.1 32152
 

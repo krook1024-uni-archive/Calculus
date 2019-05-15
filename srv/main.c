@@ -44,7 +44,7 @@
 #define MAX_CLIENTS 30
 #define MAX_BATTLES 15 // should always be (MAX_CLIENTS/2)
 
-#define MSG_LEN 128
+#define MSG_LEN 256
 
 void license(void);
 void usage(void);
@@ -87,9 +87,9 @@ main(int argc, char **argv) {
 		exit(1);
 	}
 
-	unsigned short int port = atoi(*(++argv));
-	unsigned short int rocks_per_stack = atoi (*(++argv));
-	unsigned short int max_takable = atoi (*(++argv));
+	int port = atoi(*(++argv));
+	int rocks_per_stack = atoi (*(++argv));
+	int max_takable = atoi (*(++argv));
 
 	if(port < 1024 || port > 65535) {
 		usage();
@@ -111,7 +111,7 @@ main(int argc, char **argv) {
 	printf("  - The maximum a player can take at once is %d rocks.\n", max_takable);
 
 	int opt = 1;
-	unsigned short int master_socket, addrlen, new_socket, activity, valread, sd, max_sd;
+	int master_socket, addrlen, new_socket, activity, valread, sd, max_sd;
 	struct sockaddr_in address;
 	char *welcome_msg = "Welcome to Calculus!\n";
 	char buffer[MSG_LEN + 1];
@@ -347,6 +347,17 @@ str_contains(const char *haystack, const char *needle) {
 
 char*
 str_pad(char *str, int new_len) {
+	char *pad = "#";
+
+	int len = (int)strlen(str);
+	if(len >= new_len) {
+		return str;
+	}
+
+	for(int i=0; i < (new_len - len); i++) {
+		strcat(str, pad);
+	}
+
 	return str;
 }
 
@@ -472,6 +483,10 @@ disconnect_peer(int client_id) {
 
 void
 send_message(int client_id, char* msg) {
+	/*char buf[MSG_LEN + 1];
+	strcpy(msg, buf);
+	printf(buf, str_pad(buf, MSG_LEN));*/
+
 	printf("sending: %s\n", msg);
 	if(send(g_client_socket[client_id], msg, strlen(msg), 0) < strlen(msg)) {
 		perror("(SendMessage): Error on send()! Message");
