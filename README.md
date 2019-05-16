@@ -32,6 +32,7 @@ Network architectures and protocolls.
 - [x] Connect to the server
 - [x] Receive the rules from the server
 - [x] Receive data about stacks from the server
-- [ ] Resignation given the word `feladom` or `resign`
+- [x] Resignation given the word `feladom` or `resign`
 - [x] Act accordingly to user input
 - [ ] Build a basic GUI 
+- [x] Random choice given the word `rand`
