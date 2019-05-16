@@ -154,6 +154,13 @@ class CalcSocket:
         if "rand" in whichOneIn:
             return (self.randomChoice())
 
+        try:
+            if self.stacks[int(whichOneIn)-1] < 1:
+                print("There are no rocks left in that stack.")
+                return (self.prompt())
+        except:
+            return self.prompt()
+
         howManyIn = input("How many rocks do you want to take? (1-"+str(min(self.maxTakable, self.stacks[int(whichOneIn)-1]))+"): ")
 
         if "feladom" in howManyIn or "resign" in howManyIn:
@@ -178,23 +185,19 @@ class CalcSocket:
 
     def randomChoice(self):
         try:
-            availableStacks = []
-            for i in range(0,2):
-                if self.stacks[i] > 0:
-                    availableStacks.append(i)
-
-            randStack = random.randint(1, len(availableStacks))
+            randStack = random.randint(1,3)
             randNum = random.randint(1, self.maxTakable)
 
-            if randNum >= self.stacks[randStack-1]:
-                print(randNum, randStack, self.stacks[randStack])
-                print("You chose to choose randomly! Taking", randNum, "rocks from"
-                      " stack", str(randStack) + ".")
-                return (randStack, randNum)
-            else:
+            if randNum > self.stacks[randStack-1]:
                 return (self.randomChoice())
+
+            print("You chose to choose randomly! Taking", randNum, "rocks from"
+                      " stack", str(randStack) + ".")
+            return (randStack, randNum)
+
         except ValueError:
             return (self.randomChoice())
+
         except:
             print("Random choice is not available right now!")
             print("You'll have to input number manually...")
