@@ -92,7 +92,7 @@ class CalcSocket:
                 self.closeSocket()
                 raise RuntimeError("Socket connection broken!")
 
-            print(received)
+            # print(received)
 
             if "SURRENDER" in received:
                 print("The other party has surrendered so you win this game!")
