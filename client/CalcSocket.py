@@ -186,7 +186,8 @@ class CalcSocket:
             randStack = random.randint(1, len(availableStacks))
             randNum = random.randint(1, self.maxTakable)
 
-            if randNum >= self.stacks[randStack]:
+            if randNum >= self.stacks[randStack-1]:
+                print(randNum, randStack, self.stacks[randStack])
                 print("You chose to choose randomly! Taking", randNum, "rocks from"
                       " stack", str(randStack) + ".")
                 return (randStack, randNum)

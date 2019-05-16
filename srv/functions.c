@@ -275,7 +275,7 @@ on_msg_recv(const int client_id, const char* msg, int rocks_per_stack, int max_t
 						// if its actually the senders turn
 						if(g_battles[battle_id].pNext == client_id) {
 							printf("[Battle %d] Player %d has taken %d rock(s) from stack %d!\n",
-								battle_id, client_id, howMany, whichStack);
+								battle_id, client_id, howMany, whichStack + 1);
 
 							// reduce stack by $howMany
 							g_battles[battle_id].stack[whichStack] -= howMany;
